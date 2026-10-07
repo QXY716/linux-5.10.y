@@ -280,7 +280,9 @@ nl80211_ftm_responder_policy[NL80211_FTM_RESP_ATTR_MAX + 1] = {
 static const struct nla_policy
 nl80211_pmsr_ftm_req_attr_policy[NL80211_PMSR_FTM_REQ_ATTR_MAX + 1] = {
 	[NL80211_PMSR_FTM_REQ_ATTR_ASAP] = { .type = NLA_FLAG },
-	[NL80211_PMSR_FTM_REQ_ATTR_PREAMBLE] = { .type = NLA_U32 },
+	[NL80211_PMSR_FTM_REQ_ATTR_PREAMBLE] =
+		NLA_POLICY_RANGE(NLA_U32, NL80211_PREAMBLE_LEGACY,
+				 NL80211_PREAMBLE_HE),
 	[NL80211_PMSR_FTM_REQ_ATTR_NUM_BURSTS_EXP] =
 		NLA_POLICY_MAX(NLA_U8, 15),
 	[NL80211_PMSR_FTM_REQ_ATTR_BURST_PERIOD] = { .type = NLA_U16 },
@@ -6356,8 +6358,7 @@ static int nl80211_set_station(struct sk_buff *skb, struct genl_info *info)
 	err = rdev_change_station(rdev, dev, mac_addr, &params);
 
  out_put_vlan:
-	if (params.vlan)
-		dev_put(params.vlan);
+	dev_put(params.vlan);
 
 	return err;
 }
@@ -6592,8 +6593,7 @@ static int nl80211_new_station(struct sk_buff *skb, struct genl_info *info)
 
 	err = rdev_add_station(rdev, dev, mac_addr, &params);
 
-	if (params.vlan)
-		dev_put(params.vlan);
+	dev_put(params.vlan);
 	return err;
 }
 
@@ -8308,8 +8308,7 @@ static int nl80211_trigger_scan(struct sk_buff *skb, struct genl_info *info)
 		goto out_free;
 
 	nl80211_send_scan_start(rdev, wdev);
-	if (wdev->netdev)
-		dev_hold(wdev->netdev);
+	dev_hold(wdev->netdev);
 
 	return 0;
 
@@ -14661,9 +14660,7 @@ static int nl80211_pre_doit(const struct genl_ops *ops, struct sk_buff *skb,
 			return -ENETDOWN;
 		}
 
-		if (dev)
-			dev_hold(dev);
-
+		dev_hold(dev);
 		info->user_ptr[0] = rdev;
 	}
 
@@ -14677,8 +14674,7 @@ static void nl80211_post_doit(const struct genl_ops *ops, struct sk_buff *skb,
 		if (ops->internal_flags & NL80211_FLAG_NEED_WDEV) {
 			struct wireless_dev *wdev = info->user_ptr[1];
 
-			if (wdev->netdev)
-				dev_put(wdev->netdev);
+			dev_put(wdev->netdev);
 		} else {
 			dev_put(info->user_ptr[1]);
 		}
@@ -16263,7 +16259,7 @@ void nl80211_send_ibss_bssid(struct cfg80211_registered_device *rdev,
 }
 
 void cfg80211_notify_new_peer_candidate(struct net_device *dev, const u8 *addr,
-					const u8 *ie, u8 ie_len,
+					const u8 *ie, size_t ie_len,
 					int sig_dbm, gfp_t gfp)
 {
 	struct wireless_dev *wdev = dev->ieee80211_ptr;
